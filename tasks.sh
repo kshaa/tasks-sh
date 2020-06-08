@@ -32,7 +32,8 @@ help() {
     echo
     echo "Environment variables:"
     echo "  TASKS_CONFIG        Environment variable with path to task"
-    echo "                      configuration file in JSON format"
+    echo "                      configuration file in JSON format, note that"
+    echo "                      if yq is installed, then YAML format is also supported"
     echo "  DEBUG               If variable is non-zero, then print more"
     echo "                      information for debugging"
     echo "  VERBOSE             If variable is non-zero, then print more"
@@ -45,6 +46,13 @@ if ! [ -x "$(command -v jq)" ]
 then
   echo 'Error: jq is not installed.' >&2
   exit 1
+fi
+
+# Validation: Check if yq exists
+# Source: https://stackoverflow.com/a/26759734
+if ! [ -x "$(command -v yq)" ] && [ -n "$VERBOSE" ]
+then
+  echo 'Warn: yq is not installed.' >&2
 fi
 
 # Validation: Action is required
@@ -77,8 +85,16 @@ then
     exit 1
 fi
 
+# Ingress: Read JSON or YAML (if possible)
+if [ -x "$(command -v yq)" ]
+then
+    CONFIG_JSON="$(cat $CONFIG | yq  '.' -r)"
+else
+    CONFIG_JSON="$(cat $CONFIG | jq '.' -r)"
+fi
+
 # Filtering: Subset tasks based on provided filters and their values
-TASKS_JSON="$(cat $CONFIG | jq '.tasks' -r)"
+TASKS_JSON="$(echo $CONFIG_JSON | jq '.tasks' -r)"
 if [ "$FILTER" == "name" ]
 then
     NAME="$3"
@@ -167,5 +183,5 @@ then
     done
 elif [ "$ACTION" == "dump" ]
 then
-    cat $CONFIG | jq
+    echo $CONFIG_JSON | jq -r
 fi
