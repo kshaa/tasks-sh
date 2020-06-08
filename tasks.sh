@@ -121,7 +121,7 @@ fi
 # Run appropriate command based on parameters
 if [ "$ACTION" == "get" ]
 then
-    echo $TASKS_JSON | jq '[.[] | { name: .name, groups: .groups, description: .description }]'
+    echo $TASKS_JSON | jq '[.[] | { name: .name, description: .description, groups: .groups }]'
 elif [ "$ACTION" == "describe" ]
 then
     echo $TASKS_JSON | jq -r
