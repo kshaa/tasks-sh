@@ -1,0 +1,10 @@
+{
+    "tasks": [
+        { "name": "a", "description": "A task", "groups": [ "1", "3", "4" ], "pre": "pre", "task": "task", "post": "post" },
+        { "name": "b", "description": "B task", "groups": [ "1", "3", "4" ], "pre": "pre", "task": "task", "post": "post" },
+        { "name": "c", "description": "C task", "groups": [ "2", "3", "4" ], "pre": "pre", "task": "task", "post": "post" },
+        { "name": "d", "task": "echo \"Task D is running\"" },
+        { },
+        { }
+    ]
+}
