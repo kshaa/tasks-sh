@@ -133,7 +133,7 @@ then
         if [ -z "$ERROR_CODE" ] && [ "$PRE" != "null" ]
         then
             if [ -n "$VERBOSE" ]; then echo "# Running '$NAME' pre-hook"; fi
-            if ! bash -c "$PRE"
+            if ! eval "$PRE"
             then
                 ERROR_CODE="$?"
             fi
@@ -142,7 +142,7 @@ then
         if [ -z "$ERROR_CODE" ] && [ "$TASK" != "null" ]
         then
             if [ -n "$VERBOSE" ]; then echo "# Running '$NAME' task"; fi
-            if ! bash -c "$TASK"
+            if ! eval "$TASK"
             then
                 ERROR_CODE="$?"
             fi
@@ -151,7 +151,7 @@ then
         if [ -z "$ERROR_CODE" ] && [ "$POST" != "null" ]
         then
             if [ -n "$VERBOSE" ]; then echo "# Running '$NAME' post-hook"; fi
-            if ! bash -c "$POST"
+            if ! eval "$POST"
             then
                 ERROR_CODE="$?"
             fi
@@ -160,7 +160,7 @@ then
         if [ -n "$ERROR_CODE" ] && [ "$ONFAIL" != "null" ]
         then
             if [ -n "$VERBOSE" ]; then echo "# Running '$NAME' fail-hook"; fi
-            bash -c "$ONFAIL"
+            eval "$ONFAIL"
         fi
 
         echo
