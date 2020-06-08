@@ -179,7 +179,7 @@ then
             eval "$ONFAIL"
         fi
 
-        echo
+        if [ -n "$VERBOSE" ]; then echo; fi
     done
 elif [ "$ACTION" == "dump" ]
 then
