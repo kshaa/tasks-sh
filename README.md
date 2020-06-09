@@ -51,6 +51,8 @@ Configuration parameters described in JSON path format
                                   this script can receive parameters, see TASK_PARAMETERS
 .tasks[].pre          <string>    Bash script hook run before the execution of the main task
 .tasks[].post         <string>    Bash script hook run after the execution of the main task
+.tasks[].onfail       <string>    Bash script hook run when any of the aforementioned
+                                  hooks or main script fails
 ```
 
 ## Example

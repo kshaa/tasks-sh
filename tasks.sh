@@ -58,6 +58,8 @@ help_config() {
     echo "                                  this script can receive parameters, see TASK_PARAMETERS"
     echo ".tasks[].pre          <string>    Bash script hook run before the execution of the main task"
     echo ".tasks[].post         <string>    Bash script hook run after the execution of the main task"
+    echo ".tasks[].onfail       <string>    Bash script hook run when any of the aforementioned"
+    echo "                                  hooks or main script fails"
 }
 
 # Validation: Check if jq exists
