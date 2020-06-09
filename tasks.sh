@@ -107,9 +107,15 @@ then
     shift
     for GROUP in "$@"
     do
-        JQ_QUERY="echo \$TASKS_JSON | jq '[ .[] | select(.groups[]? | contains(\"$GROUP\")) ]'"
-        if [ -n "$DEBUG" ]; then echo "Debug: Task JQ filter: $JQ_QUERY"; fi
-        TASKS_JSON="$(eval $JQ_QUERY)"
+        shift
+        if [ "$GROUP" == "--" ]
+        then 
+            break
+        else
+            JQ_QUERY="echo \$TASKS_JSON | jq '[ .[] | select(.groups[]? | contains(\"$GROUP\")) ]'"
+            if [ -n "$DEBUG" ]; then echo "Debug: Task JQ filter: $JQ_QUERY"; fi
+            TASKS_JSON="$(eval $JQ_QUERY)"
+        fi
     done
 elif [ -n "$FILTER" ]
 then
