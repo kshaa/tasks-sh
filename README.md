@@ -58,3 +58,36 @@ Configuration parameters described in JSON path format
 $ ./tasks.sh exec name "d"
 Task D is running
 ```
+
+```bash
+$ ./tasks.sh get groups 4
+[
+  {
+    "name": "a",
+    "description": "A task",
+    "groups": [
+      "1",
+      "3",
+      "4"
+    ]
+  },
+  {
+    "name": "b",
+    "description": "B task",
+    "groups": [
+      "1",
+      "3",
+      "4"
+    ]
+  },
+  {
+    "name": "c",
+    "description": "C task",
+    "groups": [
+      "2",
+      "3",
+      "4"
+    ]
+  }
+]
+```
