@@ -101,6 +101,13 @@ then
     JQ_QUERY="echo \$TASKS_JSON | jq '[ .[] | select(.name == \"$NAME\") ]'"
     if [ -n "$DEBUG" ]; then echo "Debug: Task JQ filter: $JQ_QUERY"; fi
     TASKS_JSON="$(eval $JQ_QUERY)"
+    if [ "$4" == "--" ]
+    then
+        shift
+        shift
+        shift
+        shift
+    fi
 elif [ "$FILTER" == "groups" ]
 then
     shift
@@ -117,6 +124,10 @@ then
             TASKS_JSON="$(eval $JQ_QUERY)"
         fi
     done
+elif [ "$FILTER" == "--" ]
+then
+    shift
+    shift
 elif [ -n "$FILTER" ]
 then
     echo "Error: Unknown filter '$FILTER'"
