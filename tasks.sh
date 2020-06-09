@@ -12,12 +12,13 @@ FILTER="$2"
 
 # Script usage documentation
 help() {
-    echo "Usage: TASKS_CONFIG=\"./path/to/tasks.json\" $SCRIPT ACTION [FILTER]..."
+    echo "Usage: TASKS_CONFIG=\"./path/to/tasks.json\" $SCRIPT ACTION [FILTER]... -- [TASK_PARAMETERS]"
     echo "Execute shell script tasks with pre/post hooks"
     echo
     echo "Params:"
     echo "  ACTION              Action to be taken by this script"
     echo "  FILTER              Filter to specify a subset of task(s)"
+    echo "  TASK_PARAMETERS     Parameters passed to task on execution"
     echo
     echo "Actions:"
     echo "  get                 List task(s)"
@@ -25,6 +26,7 @@ help() {
     echo "  exec                Execute task(s)"
     echo "  dump                Pretty print JSON config file"
     echo "  help                Print this help"
+    echo "  help-config         Print help about config file"
     echo
     echo "Filters:"
     echo "  name NAME           Filter a specific task by name"
@@ -38,6 +40,24 @@ help() {
     echo "                      information for debugging"
     echo "  VERBOSE             If variable is non-zero, then print more"
     echo "                      information regarding task execution"
+}
+
+# Script configuration documentation
+help_config() {
+    echo "$SCRIPT configuration file documentation"
+    echo "Configuration parameters described in JSON path format"
+    echo
+    echo ".                     <object>    Task configuration"
+    echo ".tasks                <array>     List of configured tasks"
+    echo ".tasks[]              <object>    Individual task specification"
+    echo ".tasks[].name         <string>    Task name, used for info & filtering"
+    echo ".tasks[].description  <string>    Task description, used only for info"
+    echo ".tasks[].groups       <array>     List of groups, which contain this task"
+    echo ".tasks[].groups[]     <string>    Task group, used for info & filtering"
+    echo ".tasks[].task         <string>    The main bash script run by this task, note that"
+    echo "                                  this script can receive parameters, see TASK_PARAMETERS"
+    echo ".tasks[].pre          <string>    Bash script hook run before the execution of the main task"
+    echo ".tasks[].post         <string>    Bash script hook run after the execution of the main task"
 }
 
 # Validation: Check if jq exists
@@ -67,6 +87,10 @@ fi
 if [ "$ACTION" == "help" ]
 then
     help
+    exit 0
+elif [ "$ACTION" == "help-config" ]
+then
+    help_config
     exit 0
 fi
 
