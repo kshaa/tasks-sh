@@ -6,9 +6,36 @@ DEBUG="${DEBUG}"
 VERBOSE="${VERBOSE}"
 
 # Named parameters
+## Constants
 SCRIPT="$0"
 ACTION="$1"
 FILTER="$2"
+## Extra parameters
+if [[ "$#" -gt 2 ]]
+then
+    shift && shift
+    EXTRA_VALUES=("${@:-}")
+else
+    EXTRA_VALUES=()
+fi
+## Split extra parameters into filters & task parameters
+FILTER_VALUES=()
+TASK_PARAMETERS=()
+PARSING_TASK_PARAMETERS=""
+for EXTRA_VALUE in "${EXTRA_VALUES[@]}"
+do
+    if [ "$EXTRA_VALUE" == "--" ]
+    then 
+        shift
+        PARSING_TASK_PARAMETERS="1"
+    elif [ -z "$PARSING_TASK_PARAMETERS" ]
+    then
+        shift
+        FILTER_VALUES+=("$EXTRA_VALUE")
+    else
+        TASK_PARAMETERS+=("$EXTRA_VALUE")
+    fi
+done
 
 # Script usage documentation
 help() {
@@ -104,8 +131,16 @@ then
     exit 1
 fi
 
+# Validation: Filter is correct
+if [ -n "$FILTER" ] && [ "$(echo '[ "name", "groups" ]' | jq '.[] | select(contains("'$FILTER'"))')" == "" ]
+then
+    echo "Error: Invalid filter '$FILTER'" >&2
+    echo "Run '$SCRIPT help' for help" >&2
+    exit 1
+fi
+
 # Validation: If filtering is used, filter value is required
-if [ -n "$FILTER" ] && [ -z "$3" ]
+if [ -n "$FILTER" ] && [ -z "${FILTER_VALUES[0]}" ]
 then
     echo "Error: Filter '$FILTER' is used, but no filter value provided"
     exit 1
@@ -119,73 +154,52 @@ else
     CONFIG_JSON="$(cat $CONFIG | jq '.' -r)"
 fi
 
-# Filtering: Subset tasks based on provided filters and their values
-TASKS_JSON="$(echo $CONFIG_JSON | jq '.tasks' -r)"
-if [ "$FILTER" == "name" ]
+# Dump config if needed
+if [ "$ACTION" == "dump" ]
 then
-    NAME="$3"
-    JQ_QUERY="echo \$TASKS_JSON | jq '[ .[] | select(.name == \"$NAME\") ]'"
-    if [ -n "$DEBUG" ]; then echo "Debug: Task JQ filter: $JQ_QUERY"; fi
-    TASKS_JSON="$(eval $JQ_QUERY)"
-    if [ "$4" == "--" ]
-    then
-        shift
-        shift
-        shift
-        shift
-    fi
-elif [ "$FILTER" == "groups" ]
-then
-    shift
-    shift
-    for GROUP in "$@"
-    do
-        shift
-        if [ "$GROUP" == "--" ]
-        then 
-            break
-        else
-            JQ_QUERY="echo \$TASKS_JSON | jq '[ .[] | select(.groups[]? | contains(\"$GROUP\")) ]'"
-            if [ -n "$DEBUG" ]; then echo "Debug: Task JQ filter: $JQ_QUERY"; fi
-            TASKS_JSON="$(eval $JQ_QUERY)"
-        fi
-    done
-elif [ "$FILTER" == "--" ]
-then
-    shift
-    shift
-elif [ -n "$FILTER" ]
-then
-    echo "Error: Unknown filter '$FILTER'"
-    echo "Run '$SCRIPT help' for help"
-    exit 1
+    echo $CONFIG_JSON | jq -r .
+    exit 0
 fi
 
+# Filtering: Subset tasks based on provided filters and their values
+filter_tasks() {
+    TASKS_JSON="${1:-}"
+    if [ "$FILTER" == "name" ]
+    then
+        NAME="${FILTER_VALUES[0]:-}"
+        TASKS_JSON="$(echo "$TASKS_JSON" | jq -r '[ .[] | select(.name == "'$NAME'") ]')"
+    elif [ "$FILTER" == "groups" ]
+    then
+        for GROUP in "${FILTER_VALUES[@]}"; do
+            TASKS_JSON="$(echo "$TASKS_JSON" | jq -r '[ .[] | select(.groups[]? | contains("'$GROUP'")) ]')"
+        done
+    fi
+
+    echo "$TASKS_JSON" | jq -r .
+}
+
 # Run appropriate command based on parameters
+TASKS_JSON="$(echo $CONFIG_JSON | jq -r .tasks)"
+TASKS_JSON="$(filter_tasks "$TASKS_JSON")"
 if [ "$ACTION" == "get" ]
 then
-    echo $TASKS_JSON | jq '[.[] | { name: .name, description: .description, groups: .groups }]'
+    echo $TASKS_JSON | jq '[ .[] | { name, description, groups } ]'
 elif [ "$ACTION" == "describe" ]
 then
     echo $TASKS_JSON | jq -r
 elif [ "$ACTION" == "exec" ]
 then
-    for TASK_JSON in $(echo "$TASKS_JSON" | jq -r '.[] | @base64')
+    LENGTH="$(echo "$TASKS_JSON" | jq length)" && START=0 && END="$(($LENGTH - 1))"
+    for (( INDEX = $START; INDEX <= $END; INDEX++ ))
     do
-        # Source: https://www.starkandwayne.com/blog/bash-for-loop-over-json-array-using-jq/
-        _jq() {
-            SHORT_JQ_QUERY="$1"
-            JQ_QUERY="echo \$TASK_JSON | base64 --decode | jq -r \"$SHORT_JQ_QUERY\""
-            if [ -n "$DEBUG" ]; then echo "Debug: Task attribute filter: $JQ_QUERY" >&2; fi
-            echo "$(eval $JQ_QUERY)"
-        }
+        TASK_JSON="$(echo "$TASKS_JSON" | jq .[$INDEX])"
 
         # Prepare task environment
-        NAME="$(_jq '.name')"
-        PRE="$(_jq '.pre')"
-        TASK="$(_jq '.task')"
-        POST="$(_jq '.post')"
-        ONFAIL="$(_jq '.onfail')"
+        NAME="$(echo "$TASK_JSON" | jq -r .name)"
+        PRE="$(echo "$TASK_JSON" | jq -r .pre)"
+        TASK="$(echo "$TASK_JSON" | jq -r .task)"
+        POST="$(echo "$TASK_JSON" | jq -r .post)"
+        ONFAIL="$(echo "$TASK_JSON" | jq -r .onfail)"
 
         # Run task and its hooks
         export ERROR_CODE=""
@@ -224,7 +238,4 @@ then
 
         if [ -n "$VERBOSE" ]; then echo; fi
     done
-elif [ "$ACTION" == "dump" ]
-then
-    echo $CONFIG_JSON | jq -r
 fi
