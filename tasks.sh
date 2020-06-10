@@ -132,7 +132,7 @@ then
 fi
 
 # Validation: Filter is correct
-if [ -n "$FILTER" ] && [ "$(echo '[ "name", "groups" ]' | jq '.[] | select(contains("'$FILTER'"))')" == "" ]
+if [ -n "$FILTER" ] && [ "$(echo '[ "name", "groups" ]' | jq --arg filter "$FILTER" '.[] | select(contains($filter))')" == "" ]
 then
     echo "Error: Invalid filter '$FILTER'" >&2
     echo "Run '$SCRIPT help' for help" >&2
@@ -167,11 +167,11 @@ filter_tasks() {
     if [ "$FILTER" == "name" ]
     then
         NAME="${FILTER_VALUES[0]:-}"
-        TASKS_JSON="$(echo "$TASKS_JSON" | jq -r '[ .[] | select(.name == "'$NAME'") ]')"
+        TASKS_JSON="$(echo "$TASKS_JSON" | jq --arg name "$NAME" -r '[ .[] | select(.name == $name) ]')"
     elif [ "$FILTER" == "groups" ]
     then
         for GROUP in "${FILTER_VALUES[@]}"; do
-            TASKS_JSON="$(echo "$TASKS_JSON" | jq -r '[ .[] | select(.groups[]? | contains("'$GROUP'")) ]')"
+            TASKS_JSON="$(echo "$TASKS_JSON" | jq --arg group "$GROUP" -r '[ .[] | select(.groups[]? | contains($group)) ]')"
         done
     fi
 
