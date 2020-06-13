@@ -10,14 +10,14 @@ VERBOSE="${VERBOSE}"
 SCRIPT="$0"
 ACTION="$1"
 FILTER="$2"
-## Extra parameters
+
+## Action parameter is always first and was captured
 if [[ "$#" -ge 1 ]]
 then
     shift
-elif [[ "$#" -ge 2 ]]
-then
-    shift && shift
 fi
+
+## Everything else is some extra parameter
 EXTRA_VALUES=("${@:-}")
 
 ## Split extra parameters into filters & task parameters
@@ -28,12 +28,18 @@ for EXTRA_VALUE in "${EXTRA_VALUES[@]}"
 do
     if [ "$EXTRA_VALUE" == "--" ]
     then 
-        shift
         PARSING_TASK_PARAMETERS="1"
-    elif [ -z "$PARSING_TASK_PARAMETERS" ]
-    then
         shift
-        FILTER_VALUES+=("$EXTRA_VALUE")
+        continue
+    fi
+    
+    if [ -z "$PARSING_TASK_PARAMETERS" ]
+    then
+        if [ "$EXTRA_VALUE" != "groups" ] && [ "$EXTRA_VALUE" != "name" ]
+        then
+            FILTER_VALUES+=("$EXTRA_VALUE")
+        fi
+        shift
     else
         TASK_PARAMETERS+=("$EXTRA_VALUE")
     fi
