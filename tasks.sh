@@ -11,13 +11,15 @@ SCRIPT="$0"
 ACTION="$1"
 FILTER="$2"
 ## Extra parameters
-if [[ "$#" -gt 2 ]]
+if [[ "$#" -ge 1 ]]
+then
+    shift
+elif [[ "$#" -ge 2 ]]
 then
     shift && shift
-    EXTRA_VALUES=("${@:-}")
-else
-    EXTRA_VALUES=()
 fi
+EXTRA_VALUES=("${@:-}")
+
 ## Split extra parameters into filters & task parameters
 FILTER_VALUES=()
 TASK_PARAMETERS=()
@@ -112,6 +114,14 @@ then
     exit 1
 fi
 
+# Validation: Action is correct
+if [ "$(echo '[ "get", "describe", "exec", "dump", "help", "help-config" ]' | jq '.[] | select(contains("'$ACTION'"))')" == "" ]
+then
+    echo "Error: Unknown action '$ACTION'" >&2
+    echo "Run '$SCRIPT help' for help" >&2
+    exit 1
+fi
+
 # Print help if needed
 if [ "$ACTION" == "help" ]
 then
@@ -132,7 +142,7 @@ then
 fi
 
 # Validation: Filter is correct
-if [ -n "$FILTER" ] && [ "$(echo '[ "name", "groups" ]' | jq --arg filter "$FILTER" '.[] | select(contains($filter))')" == "" ]
+if [ -n "$FILTER" ] && [ "$(echo '[ "name", "groups", "--" ]' | jq --arg filter "$FILTER" '.[] | select(contains($filter))')" == "" ]
 then
     echo "Error: Invalid filter '$FILTER'" >&2
     echo "Run '$SCRIPT help' for help" >&2
@@ -140,7 +150,7 @@ then
 fi
 
 # Validation: If filtering is used, filter value is required
-if [ -n "$FILTER" ] && [ -z "${FILTER_VALUES[0]}" ]
+if [ -n "$FILTER" ] && [ -z "${FILTER_VALUES[0]}" ] && [ "$FILTER" != "--" ]
 then
     echo "Error: Filter '$FILTER' is used, but no filter value provided"
     exit 1
