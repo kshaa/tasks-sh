@@ -11,6 +11,6 @@ in with pkgs; stdenv.mkDerivation {
     installPhase = ''
         install -m755 -D tasks.sh "$out/bin/tasks.sh"
         wrapProgram "$out/bin/tasks.sh" \
-            --prefix PATH : "${stdenv.lib.makeBinPath [ yq jq rsync ]}"
+            --prefix PATH : "${stdenv.lib.makeBinPath [ yq jq ]}"
     '';
 }
