@@ -4,6 +4,8 @@ It's like a tiny Jenkins for some minor task management.
 
 ## Environment
 ```bash
+# Environment dependencies
+$ niv show
 # Build environment
 $ nix-build
 # Enter shell w/ tasks.sh
