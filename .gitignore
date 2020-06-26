@@ -1,2 +1,7 @@
-tasks.json
-tasks.yaml
+# Common task manifest names
+/tasks.json
+/tasks.yaml
+
+# Nix package build
+/result
+/.git

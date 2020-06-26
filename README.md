@@ -2,6 +2,14 @@
 
 It's like a tiny Jenkins for some minor task management.
 
+## Environment
+```bash
+# Build environment
+$ nix-build
+# Enter shell w/ tasks.sh
+$ nix-shell
+```
+
 ## Usage
 ```bash
 $ ./tasks.sh help
