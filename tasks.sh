@@ -4,6 +4,11 @@
 CONFIG="${TASKS_CONFIG:-tasks.json}"
 DEBUG="${DEBUG}"
 VERBOSE="${VERBOSE}"
+if [ -n "$DEBUG" ]
+then
+    # In debug mode, just print as much as possible
+    set -x
+fi
 
 # Named parameters
 ## Constants
@@ -194,6 +199,20 @@ filter_tasks() {
     echo "$TASKS_JSON" | jq -r .
 }
 
+# Run task with eval or through execution
+task_run() {
+    TASK="$1"
+    if [ -f "$TASK" ]
+    then
+        $TASK "${TASK_PARAMETERS[@]}"
+    else
+        TMPSCRIPT="$(mktemp)"
+        echo "$TASK" > $TMPSCRIPT
+        bash "$TMPSCRIPT" "${TASK_PARAMETERS[@]}"
+        rm $TMPSCRIPT
+    fi
+}
+
 # Run appropriate command based on parameters
 TASKS_JSON="$(echo $CONFIG_JSON | jq -r .tasks)"
 TASKS_JSON="$(filter_tasks "$TASKS_JSON")"
@@ -222,7 +241,7 @@ then
         if [ -z "$ERROR_CODE" ] && [ "$PRE" != "null" ]
         then
             if [ -n "$VERBOSE" ]; then echo "# Running '$NAME' pre-hook"; fi
-            if ! eval "$PRE"
+            if ! task_run "$PRE"
             then
                 ERROR_CODE="$?"
             fi
@@ -231,7 +250,7 @@ then
         if [ -z "$ERROR_CODE" ] && [ "$TASK" != "null" ]
         then
             if [ -n "$VERBOSE" ]; then echo "# Running '$NAME' task"; fi
-            if ! eval "$TASK"
+            if ! task_run "$TASK"
             then
                 ERROR_CODE="$?"
             fi
@@ -240,7 +259,7 @@ then
         if [ -z "$ERROR_CODE" ] && [ "$POST" != "null" ]
         then
             if [ -n "$VERBOSE" ]; then echo "# Running '$NAME' post-hook"; fi
-            if ! eval "$POST"
+            if ! task_run "$POST"
             then
                 ERROR_CODE="$?"
             fi
@@ -249,7 +268,7 @@ then
         if [ -n "$ERROR_CODE" ] && [ "$ONFAIL" != "null" ]
         then
             if [ -n "$VERBOSE" ]; then echo "# Running '$NAME' fail-hook"; fi
-            eval "$ONFAIL"
+            task_run "$ONFAIL"
         fi
 
         if [ -n "$VERBOSE" ]; then echo; fi
