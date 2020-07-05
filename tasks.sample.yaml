@@ -9,9 +9,24 @@ tasks:
 - name: "b"
   description: "B task"
   groups: [ "1", "3", "4", "5" ]
+  pre: |
+    echo "Hello world"
+    aaa
   task: |
+    echo "All good"
+  post: |
     echo "Task started with the following parameters:"
     for param in "$@"
     do
         echo "Parameter: $param"
     done
+
+    echo
+    echo "> PRE_OUT:"
+    cat $PRE_OUT
+    
+    echo
+    echo "> TASK_OUT:"
+    cat $TASK_OUT
+
+    

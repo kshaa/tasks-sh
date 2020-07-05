@@ -209,8 +209,11 @@ task_run() {
         TMPSCRIPT="$(mktemp)"
         echo "$TASK" > $TMPSCRIPT
         bash "$TMPSCRIPT" "${TASK_PARAMETERS[@]}"
+        RETURN_CODE="$?"
         rm $TMPSCRIPT
     fi
+
+    return $RETURN_CODE
 }
 
 # Run appropriate command based on parameters
@@ -237,40 +240,57 @@ then
         ONFAIL="$(echo "$TASK_JSON" | jq -r .onfail)"
 
         # Run task and its hooks
-        export ERROR_CODE=""
-        if [ -z "$ERROR_CODE" ] && [ "$PRE" != "null" ]
+        export PRE_OUT="$(mktemp)"
+        export TASK_OUT="$(mktemp)"
+        export POST_OUT="$(mktemp)"
+
+        ## Pre task
+        export PRE_CODE="0"
+        if [ -n "$VERBOSE" ]; then echo "# Running '$NAME' pre-hook"; fi
+        if [ "$PRE" != "null" ]
         then
-            if [ -n "$VERBOSE" ]; then echo "# Running '$NAME' pre-hook"; fi
-            if ! task_run "$PRE"
-            then
-                ERROR_CODE="$?"
-            fi
+            task_run "$PRE" 2>&1 | tee $PRE_OUT
+            export PRE_CODE="${PIPESTATUS[0]}"
+            if [ "$PRE_CODE" != "0" ] && [ -n "$VERBOSE" ]; then echo "# '$NAME' pre-hook failed w/ code '$PRE_CODE'"; fi
+            echo "Exited with '$PRE_CODE'" >> $PRE_OUT
+        else
+            if [ -n "$VERBOSE" ]; then echo "# '$NAME' pre-hook not defined, skipping it"; fi
         fi
 
-        if [ -z "$ERROR_CODE" ] && [ "$TASK" != "null" ]
+        ## Task
+        export TASK_CODE="0"
+        if [ "$PRE_CODE" == "0" ]
         then
-            if [ -n "$VERBOSE" ]; then echo "# Running '$NAME' task"; fi
-            if ! task_run "$TASK"
+            if  [ "$TASK" != "null" ]
             then
-                ERROR_CODE="$?"
+                if [ -n "$VERBOSE" ]; then echo "# Running '$NAME' task"; fi
+                task_run "$TASK" 2>&1 | tee $TASK_OUT
+                export TASK_CODE="$?"
+                if [ "$TASK_CODE" != "0" ] && [ -n "$VERBOSE" ]; then echo "# '$NAME' task failed w/ code '$TASK_CODE'"; fi
+                echo "Exited with '$TASK_CODE'" >> $TASK_OUT
+            else
+                if [ -n "$VERBOSE" ]; then echo "# '$NAME' task not defined, skipping it"; fi
             fi
+        else
+            if [ -n "$VERBOSE" ]; then echo "# '$NAME' pre-hook failed, skipping task"; fi
         fi
-        
-        if [ -z "$ERROR_CODE" ] && [ "$POST" != "null" ]
+
+        ## Post task
+        export POST_CODE="0"
+        if [ "$POST" != "null" ]
         then
             if [ -n "$VERBOSE" ]; then echo "# Running '$NAME' post-hook"; fi
-            if ! task_run "$POST"
-            then
-                ERROR_CODE="$?"
-            fi
+            task_run "$POST" 2>&1 | tee $POST_OUT
+            export POST_CODE="$?"
+            echo "Exited with '$POST_CODE'" >> $POST_OUT
+        else
+            if [ -n "$VERBOSE" ]; then echo "# '$NAME' post-hook not defined, skipping it"; fi
         fi
 
-        if [ -n "$ERROR_CODE" ] && [ "$ONFAIL" != "null" ]
-        then
-            if [ -n "$VERBOSE" ]; then echo "# Running '$NAME' fail-hook"; fi
-            task_run "$ONFAIL"
-        fi
-
+        rm $PRE_OUT
+        rm $TASK_OUT
+        rm $POST_OUT
+        
         if [ -n "$VERBOSE" ]; then echo; fi
     done
 fi
